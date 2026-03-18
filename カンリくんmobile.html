@@ -3,292 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>装備在庫カンリくん</title>
+    <title>装備在庫カンリくん (Narrow)</title>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src='https://unpkg.com/tesseract.js@v4.0.3/dist/tesseract.min.js'></script>
     <style>
-        body { font-family: sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+        :root { --main-blue: #005bac; --sub-bg: #f0f4f8; }
+        body { font-family: sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 10px; font-size: 14px; }
+        .container { max-width: 360px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         
-        /* クレジット（右上） */
-        .credit { position: absolute; top: 15px; right: 20px; font-size: 0.85rem; color: #666; text-decoration: none; border-bottom: 1px solid transparent; transition: 0.2s; }
-        .credit:hover { color: #005bac; border-bottom: 1px solid #005bac; }
+        .credit { display: block; text-align: right; font-size: 0.7rem; color: #888; text-decoration: none; margin-bottom: 5px; }
+        h1 { font-family: 'DotGothic16', sans-serif; color: var(--main-blue); font-size: 1.2rem; border-bottom: 2px solid var(--main-blue); margin: 0 0 15px; }
 
-        h1 { color: #005bac; font-size: 1.6rem; border-bottom: 2px solid #005bac; padding-bottom: 10px; margin-top: 0; }
-        h2 { font-size: 1rem; margin-top: 25px; color: #666; background: #f0f4f8; padding: 8px; border-radius: 4px; }
-        .sub-desc { font-size: 0.75rem; font-weight: normal; color: #888; margin-left: 10px; }
-        
-        /* 入力グリッド */
-        .grid-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        /* [1] 確保人数設定 - コンパクト化 */
+        .section-title { font-size: 0.85rem; font-weight: bold; background: var(--sub-bg); padding: 5px 8px; border-radius: 4px; margin: 15px 0 10px; color: #555; }
+        .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px; }
         .target-box { display: flex; flex-direction: column; }
-        .target-box label { font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; }
-        .target-box input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .target-box label { font-size: 0.65rem; color: var(--main-blue); font-weight: bold; }
+        .target-box input { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
 
-        /* ボタンエリア */
-        .btn-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: 0.2s; min-width: 160px; }
-        .btn-calc { background: #005bac; color: #fff; width: 220px; }
-        .btn-calc:hover { background: #004a8d; }
+        /* [2] 在庫入力 - 縦長特化 */
+        .equip-card { border: 1px solid #eee; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+        .equip-header { background: #fafafa; padding: 5px 10px; font-weight: bold; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .equip-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 8px; background: #fff; }
+        .tier-input-group { display: flex; flex-direction: column; align-items: center; }
+        .tier-input-group span { font-size: 0.6rem; color: #888; margin-bottom: 2px; }
+        .tier-input-group input { width: 100%; box-sizing: border-box; padding: 6px 2px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
         
-        /* 画像アップロードボタン (紫) */
-        .retro-font { font-family: 'DotGothic16', sans-serif !important; letter-spacing: 1px; }
-        .btn-upload { background: #6f42c1; color: #fff; box-shadow: 0 4px 0 #4e2e8a; }
-        .btn-upload:hover { background: #5a32a3; transform: translateY(1px); box-shadow: 0 3px 0 #4e2e8a; }
-        .btn-upload:active { transform: translateY(4px); box-shadow: none; }
+        /* 次へ移動しやすくするためのフォーカス色 */
+        input:focus { border-color: var(--main-blue); background: #e3f2fd; outline: none; }
 
-        /* 結果ボタン (グレー・緑) */
-        .btn-copy { background: #6c757d; color: #fff; box-shadow: 0 4px 0 #495057; }
-        .btn-ss { background: #28a745; color: #fff; box-shadow: 0 4px 0 #1e7e34; }
+        /* 計算ボタン */
+        .calc-btn { width: 100%; padding: 15px; background: var(--main-blue); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #003d73; }
+        .calc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #003d73; }
 
-        /* 画像プレビュー */
-        #preview-canvas { display: none; max-width: 100%; border: 1px solid #ddd; margin-top: 15px; }
-
-        /* OCRテストテキスト表示エリア (一時的) */
-        #ocr-text-area { display: none; background: #f0f0f0; border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 15px; }
-        #ocr-status { font-weight: bold; color: #6f42c1; margin-bottom: 10px; }
-        #ocr-result { font-size: 0.8rem; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin: 0; }
-
-        /* 結果テーブルスタイル */
-        .scroll-x { overflow-x: auto; margin-top: 10px; border: 1px solid #ddd; background: #fff; }
-        table { border-collapse: collapse; width: 100%; min-width: 800px; font-size: 0.9rem; }
-        th, td { border: 1px solid #eee; padding: 10px 5px; text-align: center; }
+        /* 結果エリア */
+        #result-area { display: none; margin-top: 20px; }
+        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 4px; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.75rem; }
+        th, td { border: 1px solid #eee; padding: 6px 2px; text-align: center; min-width: 35px; }
         th { background: #f8f9fa; }
-        .row-label { text-align: left; font-weight: bold; padding-left: 10px; background: #fafafa; width: 120px; }
+        .row-label { font-weight: bold; background: #fafafa; text-align: left; padding-left: 5px; min-width: 60px; }
         
-        /* しま模様（偶数行を薄黄色に） */
-        #result-body tr:nth-child(even), #result-body tr:nth-child(even) .row-label { background-color: #fffde7; }
-        #summary-body tr:nth-child(even), #summary-body tr:nth-child(even) .row-label { background-color: #fffde7; }
+        .bg-red { background: #ffebed; color: #d32f2f; font-weight: bold; }
+        .bg-yellow { background: #fffde7; color: #856404; }
+        .bg-green { background: #f1fbf2; color: #2e7d32; }
 
-        /* 配色 */
-        .bg-red { background-color: #ffebed !important; color: #d32f2f; font-weight: bold; }
-        .bg-yellow { background-color: #fffde7 !important; color: #856404; font-weight: bold; }
-        .bg-green { background-color: #f1fbf2 !important; color: #2e7d32; }
-        .summary-header { background: #f0f4f8; font-weight: bold; }
-        .no-scroll { overflow: visible !important; }
+        .action-btns { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-s { flex: 1; padding: 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; color: #fff; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <a href="https://x.com/yucky_games" target="_blank" rel="noopener noreferrer" class="credit">made by ゆっきー</a>
+    <a href="https://x.com/yucky_games" target="_blank" class="credit">made by ゆっきー</a>
+    <h1 class="retro-font">装備在庫カンリくん</h1>
 
-    <h1>装備在庫カンリくん</h1>
+    <div class="section-title">1. 確保人数設定</div>
+    <div class="target-grid" id="target-inputs"></div>
 
-    <h2>[1] 各装備の確保人数を設定 <span class="sub-desc">デフォルトで入っている数値はオススメの確保人数です</span></h2>
-    <div id="target-inputs" class="grid-targets"></div>
+    <div class="section-title">2. 在庫を入力 (T2-T10)</div>
+    <div id="inventory-inputs"></div>
 
-    <div class="btn-container">
-        <button class="btn btn-calc" onclick="runCalculation()">計算する</button>
-    </div>
+    <button class="calc-btn" onclick="runCalculation()">計算を開始する</button>
 
-    <div class="btn-container">
-        <button class="btn btn-upload retro-font" id="upload-btn">スクショをアップロード</button>
-        <input type="file" id="file-input" accept="image/*" style="display:none">
-    </div>
-
-    <canvas id="preview-canvas"></canvas>
-
-    <div id="ocr-text-area">
-        <div id="ocr-status" class="retro-font">OCR準備中...</div>
-        <pre id="ocr-result"></pre>
-    </div>
-
-    <div id="result-area" style="display:none;">
-        <div id="capture-target" style="padding: 20px; background: white; border-radius: 8px;">
-            <h2 id="result-title" style="margin-top:0; background: none; border-bottom: 2px solid #eee;">計算結果</h2>
-            <div class="scroll-x" id="table-wrapper">
+    <div id="result-area">
+        <div id="capture-target" style="padding:10px; background:white;">
+            <div class="section-title" id="result-title">計算結果</div>
+            <div class="scroll-x">
                 <table>
-                    <thead><tr id="result-head"><th>アイテム</th></tr></thead>
+                    <thead><tr id="result-head"><th>装備</th></tr></thead>
                     <tbody id="result-body"></tbody>
-                    <tbody id="summary-body"></tbody>
                 </table>
             </div>
         </div>
-        
-        <div class="btn-container">
-            <button id="copy-btn" class="btn btn-copy" onclick="copyScreenshot()">画像としてコピー</button>
-            <button class="btn btn-ss" onclick="takeScreenshot()">画像として保存 (PNG)</button>
+        <div class="action-btns">
+            <button class="btn-s" style="background:#6c757d;" onclick="copyScreenshot()">コピー</button>
+            <button class="btn-s" style="background:#28a745;" onclick="takeScreenshot()">保存</button>
         </div>
     </div>
 </div>
 
 <script>
-    const EQUIP_LIST = [
-        { name: "帽子", def: 3 }, { name: "手袋", def: 2 }, { name: "靴", def: 3 },
-        { name: "バッグ", def: 2 }, { name: "バッジ", def: 2 }, { name: "ヘアピン", def: 4 },
-        { name: "お守り", def: 1 }, { name: "時計", def: 4 }, { name: "ネックレス", def: 2 }
-    ];
-    // T1はカット
-    const REQ_PER_PERSON = { 2: 40, 3: 45, 4: 50, 5: 55, 6: 65, 7: 65, 8: 60, 9: 50, 10: 60 };
+    const EQUIP_LIST = ["帽子", "手袋", "靴", "バッグ", "バッジ", "ヘアピン", "お守り", "時計", "ネックレス"];
     const TIERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const REQ_PER_PERSON = { 2: 40, 3: 45, 4: 50, 5: 55, 6: 65, 7: 65, 8: 60, 9: 50, 10: 60 };
+    const DEFAULTS = [3, 2, 3, 2, 2, 4, 1, 4, 2];
 
-    // OCRデータとアプリ入力の連携用 (後でパースしてここにデータを入れる)
-    let inventoryData = {}; 
-
-    function initApp() {
+    function init() {
+        // [1] 確保人数設定
         const targetDiv = document.getElementById('target-inputs');
-        const resultHead = document.getElementById('result-head');
-        TIERS.forEach(t => {
-            const th = document.createElement('th');
-            th.innerText = 'T' + t;
-            resultHead.appendChild(th.cloneNode(true));
+        EQUIP_LIST.forEach((name, i) => {
+            targetDiv.innerHTML += `
+                <div class="target-box">
+                    <label>${name}</label>
+                    <input type="number" id="target-${i}" value="${DEFAULTS[i]}" min="0">
+                </div>`;
         });
-        EQUIP_LIST.forEach((eq, i) => {
-            targetDiv.innerHTML += `<div class="target-box"><label>${eq.name}</label><input type="number" id="target-${i}" value="${eq.def}" min="0"></div>`;
+
+        // [2] 在庫入力エリア
+        const invDiv = document.getElementById('inventory-inputs');
+        EQUIP_LIST.forEach((name, eqIdx) => {
+            let html = `
+                <div class="equip-card">
+                    <div class="equip-header">${name}</div>
+                    <div class="equip-inputs">`;
+            TIERS.forEach(t => {
+                html += `
+                    <div class="tier-input-group">
+                        <span>T${t}</span>
+                        <input type="number" class="stock-input" 
+                               data-eq="${eqIdx}" data-t="${t}" 
+                               placeholder="0" inputmode="numeric">
+                    </div>`;
+            });
+            html += `</div></div>`;
+            invDiv.innerHTML += html;
+        });
+
+        // 結果テーブルのヘッダー
+        const headRow = document.getElementById('result-head');
+        TIERS.forEach(t => headRow.innerHTML += `<th>T${t}</th>`);
+
+        // 自動フォーカス移動イベント
+        const inputs = document.querySelectorAll('.stock-input');
+        inputs.forEach((input, index) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (inputs[index + 1]) inputs[index + 1].focus();
+                }
+            });
         });
     }
 
     function runCalculation() {
-        const resArea = document.getElementById('result-area');
         const resBody = document.getElementById('result-body');
-        const sumBody = document.getElementById('summary-body');
-        const resultTitle = document.getElementById('result-title');
-        const now = new Date();
-        resultTitle.innerText = `計算結果：目標との差分（${now.getMonth() + 1}月${now.getDate()}日時点）`;
+        resBody.innerHTML = "";
+        
+        const inputs = document.querySelectorAll('.stock-input');
+        const stocks = {};
+        inputs.forEach(input => {
+            const eq = input.dataset.eq;
+            const t = input.dataset.t;
+            if (!stocks[eq]) stocks[eq] = {};
+            stocks[eq][t] = parseInt(input.value) || 0;
+        });
 
-        resBody.innerHTML = ""; sumBody.innerHTML = "";
-        let tDeficits = {}; TIERS.forEach(t => tDeficits[t] = 0);
-
-        EQUIP_LIST.forEach((eq, i) => {
-            const targetNum = parseInt(document.getElementById(`target-${i}`).value) || 0;
-            let row = `<tr><td class="row-label">${eq.name}</td>`;
+        EQUIP_LIST.forEach((name, eqIdx) => {
+            const targetNum = parseInt(document.getElementById(`target-${eqIdx}`).value) || 0;
+            let rowHtml = `<tr><td class="row-label">${name}</td>`;
             TIERS.forEach(t => {
                 const goal = REQ_PER_PERSON[t] * targetNum;
-                
-                // --- テスト用: OCRデータと連動するまではダミーデータで計算する ---
-                // inventoryData['帽子T2'] = 100 のような形式でパースロジック作成時にデータを入れる
-                const haveKey = `${eq.name}T${t}`;
-                const have = inventoryData[haveKey] !== undefined ? inventoryData[haveKey] : 0; 
-                // -------------------------------------------------------------
-
+                const have = stocks[eqIdx][t] || 0;
                 const diff = have - goal;
-                let cls = diff < 0 ? "bg-red" : (diff < 100 ? "bg-yellow" : "bg-green");
-                if (diff < 0) tDeficits[t] += diff;
-                row += `<td class="${cls}">${diff}</td>`;
+                const cls = diff < 0 ? "bg-red" : (diff < 30 ? "bg-yellow" : "bg-green");
+                rowHtml += `<td class="${cls}">${diff}</td>`;
             });
-            resBody.innerHTML += row + `</tr>`;
+            resBody.innerHTML += rowHtml + "</tr>";
         });
 
-        let htmlDeficit = `<tr class="summary-header"><td class="row-label">T別不足数</td>`;
-        TIERS.forEach(t => htmlDeficit += `<td>${tDeficits[t]}</td>`);
-        sumBody.innerHTML += htmlDeficit + `</tr>`;
-
-        // 選択ボックスの不足計算 (ボックスのパースも後で実装)
-        let htmlFinal = `<tr class="summary-header"><td class="row-label">不足数とボックスの差</td>`;
-        TIERS.forEach(t => {
-            // ボックスも後でパースして inventoryData['ボックスT2'] にデータを入れる
-            const boxCount = inventoryData[`ボックスT${t}`] || 0; 
-            const finalVal = tDeficits[t] + boxCount;
-            let cls = finalVal < 0 ? "bg-red" : (finalVal < 100 ? "bg-yellow" : "bg-green");
-            htmlFinal += `<td class="${cls}">${finalVal}</td>`;
-        });
-        sumBody.innerHTML += htmlFinal + `</tr>`;
-
-        resArea.style.display = 'block';
-        window.scrollTo({ top: resArea.offsetTop, behavior: 'smooth' });
-    }
-
-    // --- OCR基本動作テスト：画像処理とテキスト抽出 ---
-    const fileInput = document.getElementById('file-input');
-    const uploadBtn = document.getElementById('upload-btn');
-    const canvas = document.getElementById('preview-canvas');
-    const ctx = canvas.getContext('2d');
-    const ocrTextArea = document.getElementById('ocr-text-area');
-    const ocrStatus = document.getElementById('ocr-status');
-    const ocrResult = document.getElementById('ocr-result');
-
-    uploadBtn.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                // キャンバスに描画 (プレビュー用)
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                canvas.style.display = 'block';
-
-                // OCRテキスト表示エリアを表示
-                ocrTextArea.style.display = 'block';
-                ocrResult.innerText = ''; // テキストをクリア
-                
-                // OCR実行
-                detectText(canvas);
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // Tesseract.jsによるOCR実行
-    function detectText(canvas) {
-        ocrStatus.innerText = "OCR実行中 (1/3) 言語パック読み込み...";
-
-        Tesseract.recognize(
-            canvas,
-            'jpn+eng', // 日本語と英語の混合パック。ブルーアーカイブのT, x, 数字に対応。
-            { 
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        ocrStatus.innerText = `OCR実行中 (2/3) テキスト抽出中... ${Math.round(m.progress * 100)}%`;
-                    }
-                }
-            }
-        ).then(({ data: { text } }) => {
-            ocrStatus.innerText = "OCR完了 (3/3) テキスト抽出成功";
-            ocrResult.innerText = text; // 抽出された生テキストを表示
-
-            // --- 後でここにOCR生テキストをEQUIP_LISTと連携させるパースロジックを追加する ---
-            // parseOcrText(text); 
-            // setInventoryData(); // inventoryData にデータをセットする
-            // -------------------------------------------------------------------------
-        }).catch(err => {
-            console.error("OCR失敗:", err);
-            ocrStatus.innerText = "OCR失敗: エラーが発生しました";
-            ocrStatus.style.color = "red";
-        });
-    }
-
-    async function generateCanvas() {
-        const target = document.getElementById('capture-target');
-        const wrapper = document.getElementById('table-wrapper');
-        wrapper.classList.add('no-scroll');
-        const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2 });
-        wrapper.classList.remove('no-scroll');
-        return canvas;
+        document.getElementById('result-area').style.display = 'block';
+        window.scrollTo({ top: document.getElementById('result-area').offsetTop, behavior: 'smooth' });
     }
 
     async function takeScreenshot() {
-        try {
-            const canvas = await generateCanvas();
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL("image/png");
-            const now = new Date();
-            link.download = `BA_在庫_${now.getMonth()+1}月${now.getDate()}日.png`;
-            link.click();
-        } catch (e) { alert("保存に失敗しました。"); }
+        const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL("image/png");
+        link.download = `BA_Stock_${new Date().getMonth()+1}${new Date().getDate()}.png`;
+        link.click();
     }
 
     async function copyScreenshot() {
-        const btn = document.getElementById('copy-btn');
-        try {
-            const canvas = await generateCanvas();
-            canvas.toBlob(async (blob) => {
-                const item = new ClipboardItem({ "image/png": blob });
-                await navigator.clipboard.write([item]);
-                const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
-                setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
-            });
-        } catch (err) { alert("コピーに失敗しました。HTTPS環境が必要です。"); }
+        const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
+        canvas.toBlob(async (blob) => {
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            alert("コピー完了");
+        });
     }
 
-    window.addEventListener('DOMContentLoaded', initApp);
+    init();
 </script>
 
 </body>
