@@ -3,50 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>装備在庫カンリくん (Mobile-Grid)</title>
+    <title>装備在庫カンリくん (Mobile-Fix)</title>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        :root { --main-blue: #005bac; --sub-bg: #f0f4f8; }
+        :root { --main-blue: #005bac; --sub-bg: #f0f4f8; --blue-btn: #00c9eb; --pink-btn: #f48bff; --spell-purple: #9c27b0; }
         body { font-family: sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 10px; font-size: 14px; }
         .container { max-width: 380px; margin: auto; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .credit { display: block; text-align: right; font-size: 0.65rem; color: #888; text-decoration: none; margin-bottom: 5px; }
         h1 { font-family: 'DotGothic16', sans-serif; color: var(--main-blue); font-size: 1rem; border-bottom: 2px solid var(--main-blue); margin: 0 0 10px; text-align: center; padding-bottom: 5px; }
         .section-title { font-size: 0.8rem; font-weight: bold; background: var(--sub-bg); padding: 4px 8px; border-radius: 4px; margin: 10px 0 8px; color: #555; }
         
-        /* スピンボタンの非表示 */
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
 
-        /* [1] 確保人数設定 */
         .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 10px; }
         .target-box { display: flex; flex-direction: column; }
         .target-box label { font-size: 0.6rem; color: var(--main-blue); font-weight: bold; text-align: center; }
         .target-box input { width: 100%; box-sizing: border-box; padding: 6px 2px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; text-align: center; }
 
-        /* [2] 在庫入力 (3×3グリッド) */
-        .equip-card { border: 1px solid #eee; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #fff; }
-        .equip-header { background: #fafafa; padding: 4px 10px; font-weight: bold; border-bottom: 1px solid #eee; color: var(--main-blue); font-size: 0.85rem; }
+        .spell-input-area { margin: 10px 0; padding: 10px; background: #f3e5f5; border-radius: 6px; border: 1px dashed var(--spell-purple); }
+        .spell-input-area input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 6px; font-size: 0.85rem; }
+        .btn-restore { width: 100%; padding: 10px; background: var(--spell-purple); color: #fff; border: none; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
+
+        .equip-card { border: 1px solid #eee; border-radius: 6px; margin-bottom: 10px; overflow: hidden; background: #fff; }
+        .equip-header { background: #fafafa; padding: 6px 10px; font-weight: bold; border-bottom: 1px solid #eee; color: var(--main-blue); font-size: 0.85rem; }
         .equip-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
-        
         .tier-unit { display: flex; flex-direction: column; align-items: center; border: 1px solid #f0f0f0; padding: 4px 0; border-radius: 4px; }
         .tier-label { font-size: 0.75rem; font-weight: bold; color: #888; margin-bottom: 2px; }
-        
         .stock-input { width: 50px; box-sizing: border-box; padding: 6px 2px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; margin-bottom: 4px; background: #fff; }
         
         .btn-group { display: flex; gap: 2px; }
         .btn-step { width: 44px; height: 32px; border: none; border-radius: 3px; color: #fff; font-size: 0.7rem; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        
-        /* ボタン色を指定のものに変更 */
-        .btn-step.minus { background: #00c9eb; } /* 青ボタン：シアン */
-        .btn-step.plus { background: #f48bff; }  /* 赤ボタン：マゼンタピンク */
-        
+        .btn-step.minus { background: var(--blue-btn); } 
+        .btn-step.plus { background: var(--pink-btn); }  
         .btn-step:active { opacity: 0.6; transform: scale(0.95); }
 
-        .calc-btn { width: 100%; padding: 12px; background: var(--main-blue); color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 0 #003d73; }
-        .calc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #003d73; }
-
-        /* 結果表示 */
+        .calc-btn { width: 100%; padding: 15px; background: var(--main-blue); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 0 #003d73; }
+        
         #result-area { display: none; margin-top: 15px; }
         .scroll-x { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; }
         table { border-collapse: collapse; width: 100%; font-size: 0.7rem; }
@@ -56,17 +51,39 @@
         .bg-red { background: #ffebed !important; color: #d32f2f !important; font-weight: bold; }
         .bg-yellow { background: #fffde7 !important; color: #856404 !important; }
         .bg-green { background: #f1fbf2 !important; color: #2e7d32 !important; }
-        .action-btns { display: flex; gap: 4px; margin-top: 10px; }
-        .btn-s { flex: 1; padding: 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-weight: bold; text-align: center; }
+        
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 10px; }
+        .btn-full { grid-column: span 2; }
+        .btn-s { padding: 12px; font-size: 0.85rem; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-weight: bold; text-align: center; }
+        #spell-branch { display: none; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; grid-column: span 2; }
+
+        /* コピー失敗時のプレビュー用 */
+        #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        #preview-modal img { max-width: 100%; max-height: 80%; border-radius: 8px; border: 4px solid #fff; }
+        .modal-close { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; font-weight: bold; cursor: pointer; }
+        .modal-text { position: absolute; bottom: 40px; color: #fff; text-align: center; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
-<div class="container" id="main-app">
+
+<div id="preview-modal">
+    <span class="modal-close" onclick="closePreview()">&times;</span>
+    <img id="preview-img" src="">
+    <div class="modal-text">画像を長押しして「保存」または「コピー」してください</div>
+</div>
+
+<div class="container">
     <a href="https://x.com/yucky_games" target="_blank" class="credit">made by ゆっきー</a>
     <h1 class="retro-font">装備在庫カンリくん（モバイル）</h1>
 
     <div class="section-title">1. 各装備の確保人数を設定</div>
     <div id="target-inputs" class="target-grid"></div>
+
+    <div class="section-title">ふっかつのじゅもんを入力</div>
+    <div class="spell-input-area">
+        <input type="text" id="spell-text" placeholder="じゅもん（またはURL）を貼り付け...">
+        <button class="btn-restore" onclick="applySpell()">データを復元する</button>
+    </div>
 
     <div class="section-title">2. 在庫を入力 (T2-T10)</div>
     <div id="inventory-inputs"></div>
@@ -84,8 +101,13 @@
             </div>
         </div>
         <div class="action-btns">
-            <button class="btn-s" style="background:#6c757d;" id="copy-btn">コピー</button>
-            <button class="btn-s" style="background:#28a745;" id="save-btn">保存</button>
+            <button class="btn-s" style="background:#6c757d;" id="copy-btn-real" onclick="handleCopy()">画像をコピー</button>
+            <button class="btn-s" style="background:#28a745;" onclick="takeScreenshot()">画像として保存</button>
+            <button class="btn-s btn-full" style="background:#6f42c1;" id="spell-btn">ふっかつのじゅもん</button>
+            <div id="spell-branch">
+                <button class="btn-s" style="background:#673ab7;" onclick="copySpellUrl()">URL保存</button>
+                <button class="btn-s" style="background:var(--spell-purple);" onclick="copySpellOnly()">じゅもんのみコピー</button>
+            </div>
         </div>
     </div>
 </div>
@@ -96,11 +118,10 @@
     var REQ_PER_PERSON = { 2: 40, 3: 45, 4: 50, 5: 55, 6: 65, 7: 65, 8: 60, 9: 50, 10: 60 };
     var DEFAULTS = [3, 2, 3, 2, 2, 4, 1, 4, 2];
 
-    function startApp() {
+    function buildUI() {
         var targetDiv = document.getElementById('target-inputs');
         var invDiv = document.getElementById('inventory-inputs');
         var headRow = document.getElementById('result-head');
-        if (!targetDiv || !invDiv) return;
 
         var tHtml = "";
         for (var i = 0; i < EQUIP_LIST.length; i++) {
@@ -115,14 +136,12 @@
             for (var k = 0; k < TIERS.length; k++) {
                 var t = TIERS[k];
                 var inputId = 'stock-' + j + '-' + t;
-                iHtml += '<div class="tier-unit">' +
-                    '<span class="tier-label">T' + t + '</span>' +
+                iHtml += '<div class="tier-unit"><span class="tier-label">T' + t + '</span>' +
                     '<input type="number" class="stock-input" id="' + inputId + '" data-eq="' + j + '" data-t="' + t + '" value="0" inputmode="numeric">' +
                     '<div class="btn-group">' +
                     '<button type="button" class="btn-step minus" onclick="changeVal(\'' + inputId + '\', -25)">-25</button>' +
                     '<button type="button" class="btn-step plus" onclick="changeVal(\'' + inputId + '\', 25)">+25</button>' +
-                    '</div>' +
-                    '</div>';
+                    '</div></div>';
             }
             iHtml += '</div></div>';
         }
@@ -133,41 +152,100 @@
         headRow.innerHTML = hHtml;
 
         document.getElementById('main-calc-btn').onclick = runCalculation;
-        document.getElementById('save-btn').onclick = takeScreenshot;
-        document.getElementById('copy-btn').onclick = copyScreenshot;
+        document.getElementById('spell-btn').onclick = function() {
+            document.getElementById('spell-branch').style.display = 'grid';
+        };
     }
 
-    window.changeVal = function(id, delta) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var cur = parseInt(el.value) || 0;
-        var next = cur + delta;
-        if (next < 0) next = 0;
-        el.value = next;
+    // --- じゅもん処理の強化 ---
+    function restoreFromCode(code) {
+        if (!code) return;
+        // URLが含まれている場合はパラメータ部分だけ抽出
+        if (code.indexOf('s=') !== -1) {
+            code = code.split('s=')[1].split('&')[0];
+        }
+        code = code.trim();
+        
+        try {
+            var binary = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
+            var charData = binary.split('').map(function(x){return x.charCodeAt(0);});
+            var json = pako.inflate(new Uint8Array(charData), { to: 'string' });
+            var data = JSON.parse(json);
+            if (data.t) for (var i = 0; i < data.t.length; i++) {
+                var el = document.getElementById('target-' + i);
+                if (el) el.value = data.t[i];
+            }
+            if (data.s) {
+                var inputs = document.getElementsByClassName('stock-input');
+                for (var j = 0; j < data.s.length; j++) if (inputs[j]) inputs[j].value = data.s[j];
+            }
+            return true;
+        } catch (e) { 
+            alert("じゅもんが正しくありません。");
+            return false;
+        }
+    }
+
+    window.applySpell = function() {
+        var code = document.getElementById('spell-text').value;
+        if (code && restoreFromCode(code)) { alert("復元完了しました！"); }
     };
 
-    function runCalculation() {
-        var resBody = document.getElementById('result-body');
-        if (!resBody) return;
-        resBody.innerHTML = "";
-        var inputs = document.getElementsByClassName('stock-input');
-        var stocks = {};
-        for (var i = 0; i < inputs.length; i++) {
-            var eqIdx = inputs[i].getAttribute('data-eq');
-            var tVal = inputs[i].getAttribute('data-t');
-            if (!stocks[eqIdx]) stocks[eqIdx] = {};
-            stocks[eqIdx][tVal] = parseInt(inputs[i].value) || 0;
+    // --- コピー機能の強化（フォールバック付き） ---
+    async function handleCopy() {
+        const btn = document.getElementById('copy-btn-real');
+        btn.innerText = "生成中...";
+        try {
+            const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            
+            if (navigator.clipboard && window.ClipboardItem) {
+                await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                btn.innerText = "コピー完了！";
+                setTimeout(() => { btn.innerText = "画像をコピー"; }, 2000);
+            } else {
+                throw new Error("Clipboard API not available");
+            }
+        } catch (e) {
+            // コピー失敗時はプレビュー画面を出す
+            btn.innerText = "画像をコピー";
+            showPreview();
         }
+    }
+
+    async function showPreview() {
+        const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
+        document.getElementById('preview-img').src = canvas.toDataURL('image/png');
+        document.getElementById('preview-modal').style.display = 'flex';
+    }
+
+    window.closePreview = function() {
+        document.getElementById('preview-modal').style.display = 'none';
+    };
+
+    // --- その他基本機能 ---
+    function generateCode() {
+        var data = { t: [], s: [] };
+        for (var i = 0; i < EQUIP_LIST.length; i++) data.t.push(parseInt(document.getElementById('target-' + i).value) || 0);
+        var inputs = document.getElementsByClassName('stock-input');
+        for (var j = 0; j < inputs.length; j++) data.s.push(parseInt(inputs[j].value) || 0);
+        var compressed = pako.deflate(JSON.stringify(data));
+        return btoa(String.fromCharCode.apply(null, compressed)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function runCalculation() {
+        localStorage.setItem('ba_mobile_stock', generateCode());
+        var resBody = document.getElementById('result-body');
+        resBody.innerHTML = "";
         for (var j = 0; j < EQUIP_LIST.length; j++) {
             var targetNum = parseInt(document.getElementById('target-' + j).value) || 0;
             var row = '<tr><td class="row-label">' + EQUIP_LIST[j] + '</td>';
             for (var k = 0; k < TIERS.length; k++) {
                 var t = TIERS[k];
                 var goal = (REQ_PER_PERSON[t] || 0) * targetNum;
-                var have = (stocks[j] && stocks[j][t]) ? stocks[j][t] : 0;
+                var have = parseInt(document.getElementById('stock-' + j + '-' + t).value) || 0;
                 var diff = have - goal;
-                var cls = diff < 0 ? "bg-red" : (diff < 30 ? "bg-yellow" : "bg-green");
-                row += '<td class="' + cls + '">' + diff + '</td>';
+                row += '<td class="' + (diff < 0 ? "bg-red" : (diff < 30 ? "bg-yellow" : "bg-green")) + '">' + diff + '</td>';
             }
             resBody.innerHTML += row + '</tr>';
         }
@@ -175,30 +253,35 @@
         window.scrollTo(0, document.getElementById('result-area').offsetTop);
     }
 
+    window.changeVal = function(id, delta) {
+        var el = document.getElementById(id);
+        var cur = parseInt(el.value) || 0;
+        var next = cur + delta;
+        el.value = next < 0 ? 0 : next;
+    };
+
+    window.copySpellUrl = function() {
+        var url = window.location.origin + window.location.pathname + '?s=' + generateCode();
+        navigator.clipboard.writeText(url).then(function() { alert("URLコピー完了"); });
+    };
+
+    window.copySpellOnly = function() {
+        navigator.clipboard.writeText(generateCode()).then(function() { alert("じゅもんコピー完了"); });
+    };
+
     function takeScreenshot() {
         html2canvas(document.getElementById('capture-target'), { scale: 2 }).then(function(canvas) {
             var link = document.createElement('a');
-            link.href = canvas.toDataURL("image/png");
-            link.download = "BA_Stock_Mobile.png";
-            link.click();
+            link.href = canvas.toDataURL("image/png"); link.download = "BA_Result.png"; link.click();
         });
     }
 
-    function copyScreenshot() {
-        html2canvas(document.getElementById('capture-target'), { scale: 2 }).then(function(canvas) {
-            canvas.toBlob(function(blob) {
-                if (navigator.clipboard && window.ClipboardItem) {
-                    navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(function() {
-                        alert("コピー完了");
-                    });
-                } else {
-                    alert("保存してください");
-                }
-            });
-        });
-    }
-
-    if (document.readyState === 'complete') { startApp(); } else { window.addEventListener('load', startApp); }
+    window.onload = function() {
+        buildUI();
+        var s = new URLSearchParams(window.location.search).get('s');
+        if (s) restoreFromCode(s);
+        else restoreFromCode(localStorage.getItem('ba_mobile_stock'));
+    };
 </script>
 </body>
 </html>
