@@ -2,188 +2,203 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>装備在庫カンリくん (Narrow)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>装備在庫カンリくん (Mobile-Grid)</title>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --main-blue: #005bac; --sub-bg: #f0f4f8; }
         body { font-family: sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 10px; font-size: 14px; }
-        .container { max-width: 360px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .container { max-width: 380px; margin: auto; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .credit { display: block; text-align: right; font-size: 0.65rem; color: #888; text-decoration: none; margin-bottom: 5px; }
+        h1 { font-family: 'DotGothic16', sans-serif; color: var(--main-blue); font-size: 1rem; border-bottom: 2px solid var(--main-blue); margin: 0 0 10px; text-align: center; padding-bottom: 5px; }
+        .section-title { font-size: 0.8rem; font-weight: bold; background: var(--sub-bg); padding: 4px 8px; border-radius: 4px; margin: 10px 0 8px; color: #555; }
         
-        .credit { display: block; text-align: right; font-size: 0.7rem; color: #888; text-decoration: none; margin-bottom: 5px; }
-        h1 { font-family: 'DotGothic16', sans-serif; color: var(--main-blue); font-size: 1.2rem; border-bottom: 2px solid var(--main-blue); margin: 0 0 15px; }
+        /* スピンボタンの非表示 */
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
 
-        /* [1] 確保人数設定 - コンパクト化 */
-        .section-title { font-size: 0.85rem; font-weight: bold; background: var(--sub-bg); padding: 5px 8px; border-radius: 4px; margin: 15px 0 10px; color: #555; }
-        .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px; }
+        /* [1] 確保人数設定 */
+        .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 10px; }
         .target-box { display: flex; flex-direction: column; }
-        .target-box label { font-size: 0.65rem; color: var(--main-blue); font-weight: bold; }
-        .target-box input { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+        .target-box label { font-size: 0.6rem; color: var(--main-blue); font-weight: bold; text-align: center; }
+        .target-box input { width: 100%; box-sizing: border-box; padding: 6px 2px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; text-align: center; }
 
-        /* [2] 在庫入力 - 縦長特化 */
-        .equip-card { border: 1px solid #eee; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
-        .equip-header { background: #fafafa; padding: 5px 10px; font-weight: bold; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .equip-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 8px; background: #fff; }
-        .tier-input-group { display: flex; flex-direction: column; align-items: center; }
-        .tier-input-group span { font-size: 0.6rem; color: #888; margin-bottom: 2px; }
-        .tier-input-group input { width: 100%; box-sizing: border-box; padding: 6px 2px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+        /* [2] 在庫入力 (3×3グリッド) */
+        .equip-card { border: 1px solid #eee; border-radius: 6px; margin-bottom: 8px; overflow: hidden; background: #fff; }
+        .equip-header { background: #fafafa; padding: 4px 10px; font-weight: bold; border-bottom: 1px solid #eee; color: var(--main-blue); font-size: 0.85rem; }
+        .equip-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
         
-        /* 次へ移動しやすくするためのフォーカス色 */
-        input:focus { border-color: var(--main-blue); background: #e3f2fd; outline: none; }
+        .tier-unit { display: flex; flex-direction: column; align-items: center; border: 1px solid #f0f0f0; padding: 4px 0; border-radius: 4px; }
+        .tier-label { font-size: 0.75rem; font-weight: bold; color: #888; margin-bottom: 2px; }
+        
+        .stock-input { width: 50px; box-sizing: border-box; padding: 6px 2px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; margin-bottom: 4px; background: #fff; }
+        
+        .btn-group { display: flex; gap: 2px; }
+        .btn-step { width: 44px; height: 32px; border: none; border-radius: 3px; color: #fff; font-size: 0.7rem; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        
+        /* ボタン色を指定のものに変更 */
+        .btn-step.minus { background: #00c9eb; } /* 青ボタン：シアン */
+        .btn-step.plus { background: #f48bff; }  /* 赤ボタン：マゼンタピンク */
+        
+        .btn-step:active { opacity: 0.6; transform: scale(0.95); }
 
-        /* 計算ボタン */
-        .calc-btn { width: 100%; padding: 15px; background: var(--main-blue); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #003d73; }
+        .calc-btn { width: 100%; padding: 12px; background: var(--main-blue); color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 0 #003d73; }
         .calc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #003d73; }
 
-        /* 結果エリア */
-        #result-area { display: none; margin-top: 20px; }
-        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 4px; }
-        table { border-collapse: collapse; width: 100%; font-size: 0.75rem; }
-        th, td { border: 1px solid #eee; padding: 6px 2px; text-align: center; min-width: 35px; }
+        /* 結果表示 */
+        #result-area { display: none; margin-top: 15px; }
+        .scroll-x { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.7rem; }
+        th, td { border: 1px solid #eee; padding: 4px 1px; text-align: center; min-width: 32px; }
         th { background: #f8f9fa; }
-        .row-label { font-weight: bold; background: #fafafa; text-align: left; padding-left: 5px; min-width: 60px; }
-        
-        .bg-red { background: #ffebed; color: #d32f2f; font-weight: bold; }
-        .bg-yellow { background: #fffde7; color: #856404; }
-        .bg-green { background: #f1fbf2; color: #2e7d32; }
-
-        .action-btns { display: flex; gap: 5px; margin-top: 10px; }
-        .btn-s { flex: 1; padding: 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; color: #fff; }
+        .row-label { font-weight: bold; background: #fafafa; text-align: left; padding-left: 4px; min-width: 50px; }
+        .bg-red { background: #ffebed !important; color: #d32f2f !important; font-weight: bold; }
+        .bg-yellow { background: #fffde7 !important; color: #856404 !important; }
+        .bg-green { background: #f1fbf2 !important; color: #2e7d32 !important; }
+        .action-btns { display: flex; gap: 4px; margin-top: 10px; }
+        .btn-s { flex: 1; padding: 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
-
-<div class="container">
+<div class="container" id="main-app">
     <a href="https://x.com/yucky_games" target="_blank" class="credit">made by ゆっきー</a>
-    <h1 class="retro-font">装備在庫カンリくん</h1>
+    <h1 class="retro-font">装備在庫カンリくん（モバイル）</h1>
 
-    <div class="section-title">1. 確保人数設定</div>
-    <div class="target-grid" id="target-inputs"></div>
+    <div class="section-title">1. 各装備の確保人数を設定</div>
+    <div id="target-inputs" class="target-grid"></div>
 
     <div class="section-title">2. 在庫を入力 (T2-T10)</div>
     <div id="inventory-inputs"></div>
 
-    <button class="calc-btn" onclick="runCalculation()">計算を開始する</button>
+    <button class="calc-btn retro-font" id="main-calc-btn">計算を開始する</button>
 
     <div id="result-area">
-        <div id="capture-target" style="padding:10px; background:white;">
-            <div class="section-title" id="result-title">計算結果</div>
+        <div id="capture-target" style="padding:10px; background:white; border-radius: 4px;">
+            <div class="section-title" style="margin-top:0;">計算結果</div>
             <div class="scroll-x">
                 <table>
-                    <thead><tr id="result-head"><th>装備</th></tr></thead>
+                    <thead><tr id="result-head"></tr></thead>
                     <tbody id="result-body"></tbody>
                 </table>
             </div>
         </div>
         <div class="action-btns">
-            <button class="btn-s" style="background:#6c757d;" onclick="copyScreenshot()">コピー</button>
-            <button class="btn-s" style="background:#28a745;" onclick="takeScreenshot()">保存</button>
+            <button class="btn-s" style="background:#6c757d;" id="copy-btn">コピー</button>
+            <button class="btn-s" style="background:#28a745;" id="save-btn">保存</button>
         </div>
     </div>
 </div>
 
 <script>
-    const EQUIP_LIST = ["帽子", "手袋", "靴", "バッグ", "バッジ", "ヘアピン", "お守り", "時計", "ネックレス"];
-    const TIERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const REQ_PER_PERSON = { 2: 40, 3: 45, 4: 50, 5: 55, 6: 65, 7: 65, 8: 60, 9: 50, 10: 60 };
-    const DEFAULTS = [3, 2, 3, 2, 2, 4, 1, 4, 2];
+    var EQUIP_LIST = ["帽子", "手袋", "靴", "バッグ", "バッジ", "ヘアピン", "お守り", "時計", "ネックレス"];
+    var TIERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+    var REQ_PER_PERSON = { 2: 40, 3: 45, 4: 50, 5: 55, 6: 65, 7: 65, 8: 60, 9: 50, 10: 60 };
+    var DEFAULTS = [3, 2, 3, 2, 2, 4, 1, 4, 2];
 
-    function init() {
-        // [1] 確保人数設定
-        const targetDiv = document.getElementById('target-inputs');
-        EQUIP_LIST.forEach((name, i) => {
-            targetDiv.innerHTML += `
-                <div class="target-box">
-                    <label>${name}</label>
-                    <input type="number" id="target-${i}" value="${DEFAULTS[i]}" min="0">
-                </div>`;
+    function startApp() {
+        var targetDiv = document.getElementById('target-inputs');
+        var invDiv = document.getElementById('inventory-inputs');
+        var headRow = document.getElementById('result-head');
+        if (!targetDiv || !invDiv) return;
+
+        var tHtml = "";
+        for (var i = 0; i < EQUIP_LIST.length; i++) {
+            tHtml += '<div class="target-box"><label>' + EQUIP_LIST[i] + '</label>' +
+                '<input type="number" id="target-' + i + '" value="' + DEFAULTS[i] + '" min="0" inputmode="numeric"></div>';
+        }
+        targetDiv.innerHTML = tHtml;
+
+        var iHtml = "";
+        for (var j = 0; j < EQUIP_LIST.length; j++) {
+            iHtml += '<div class="equip-card"><div class="equip-header">' + EQUIP_LIST[j] + '</div><div class="equip-inputs">';
+            for (var k = 0; k < TIERS.length; k++) {
+                var t = TIERS[k];
+                var inputId = 'stock-' + j + '-' + t;
+                iHtml += '<div class="tier-unit">' +
+                    '<span class="tier-label">T' + t + '</span>' +
+                    '<input type="number" class="stock-input" id="' + inputId + '" data-eq="' + j + '" data-t="' + t + '" value="0" inputmode="numeric">' +
+                    '<div class="btn-group">' +
+                    '<button type="button" class="btn-step minus" onclick="changeVal(\'' + inputId + '\', -25)">-25</button>' +
+                    '<button type="button" class="btn-step plus" onclick="changeVal(\'' + inputId + '\', 25)">+25</button>' +
+                    '</div>' +
+                    '</div>';
+            }
+            iHtml += '</div></div>';
+        }
+        invDiv.innerHTML = iHtml;
+
+        var hHtml = "<th>装備</th>";
+        for (var l = 0; l < TIERS.length; l++) { hHtml += '<th>T' + TIERS[l] + '</th>'; }
+        headRow.innerHTML = hHtml;
+
+        document.getElementById('main-calc-btn').onclick = runCalculation;
+        document.getElementById('save-btn').onclick = takeScreenshot;
+        document.getElementById('copy-btn').onclick = copyScreenshot;
+    }
+
+    window.changeVal = function(id, delta) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var cur = parseInt(el.value) || 0;
+        var next = cur + delta;
+        if (next < 0) next = 0;
+        el.value = next;
+    };
+
+    function runCalculation() {
+        var resBody = document.getElementById('result-body');
+        if (!resBody) return;
+        resBody.innerHTML = "";
+        var inputs = document.getElementsByClassName('stock-input');
+        var stocks = {};
+        for (var i = 0; i < inputs.length; i++) {
+            var eqIdx = inputs[i].getAttribute('data-eq');
+            var tVal = inputs[i].getAttribute('data-t');
+            if (!stocks[eqIdx]) stocks[eqIdx] = {};
+            stocks[eqIdx][tVal] = parseInt(inputs[i].value) || 0;
+        }
+        for (var j = 0; j < EQUIP_LIST.length; j++) {
+            var targetNum = parseInt(document.getElementById('target-' + j).value) || 0;
+            var row = '<tr><td class="row-label">' + EQUIP_LIST[j] + '</td>';
+            for (var k = 0; k < TIERS.length; k++) {
+                var t = TIERS[k];
+                var goal = (REQ_PER_PERSON[t] || 0) * targetNum;
+                var have = (stocks[j] && stocks[j][t]) ? stocks[j][t] : 0;
+                var diff = have - goal;
+                var cls = diff < 0 ? "bg-red" : (diff < 30 ? "bg-yellow" : "bg-green");
+                row += '<td class="' + cls + '">' + diff + '</td>';
+            }
+            resBody.innerHTML += row + '</tr>';
+        }
+        document.getElementById('result-area').style.display = 'block';
+        window.scrollTo(0, document.getElementById('result-area').offsetTop);
+    }
+
+    function takeScreenshot() {
+        html2canvas(document.getElementById('capture-target'), { scale: 2 }).then(function(canvas) {
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL("image/png");
+            link.download = "BA_Stock_Mobile.png";
+            link.click();
         });
+    }
 
-        // [2] 在庫入力エリア
-        const invDiv = document.getElementById('inventory-inputs');
-        EQUIP_LIST.forEach((name, eqIdx) => {
-            let html = `
-                <div class="equip-card">
-                    <div class="equip-header">${name}</div>
-                    <div class="equip-inputs">`;
-            TIERS.forEach(t => {
-                html += `
-                    <div class="tier-input-group">
-                        <span>T${t}</span>
-                        <input type="number" class="stock-input" 
-                               data-eq="${eqIdx}" data-t="${t}" 
-                               placeholder="0" inputmode="numeric">
-                    </div>`;
-            });
-            html += `</div></div>`;
-            invDiv.innerHTML += html;
-        });
-
-        // 結果テーブルのヘッダー
-        const headRow = document.getElementById('result-head');
-        TIERS.forEach(t => headRow.innerHTML += `<th>T${t}</th>`);
-
-        // 自動フォーカス移動イベント
-        const inputs = document.querySelectorAll('.stock-input');
-        inputs.forEach((input, index) => {
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (inputs[index + 1]) inputs[index + 1].focus();
+    function copyScreenshot() {
+        html2canvas(document.getElementById('capture-target'), { scale: 2 }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(function() {
+                        alert("コピー完了");
+                    });
+                } else {
+                    alert("保存してください");
                 }
             });
         });
     }
 
-    function runCalculation() {
-        const resBody = document.getElementById('result-body');
-        resBody.innerHTML = "";
-        
-        const inputs = document.querySelectorAll('.stock-input');
-        const stocks = {};
-        inputs.forEach(input => {
-            const eq = input.dataset.eq;
-            const t = input.dataset.t;
-            if (!stocks[eq]) stocks[eq] = {};
-            stocks[eq][t] = parseInt(input.value) || 0;
-        });
-
-        EQUIP_LIST.forEach((name, eqIdx) => {
-            const targetNum = parseInt(document.getElementById(`target-${eqIdx}`).value) || 0;
-            let rowHtml = `<tr><td class="row-label">${name}</td>`;
-            TIERS.forEach(t => {
-                const goal = REQ_PER_PERSON[t] * targetNum;
-                const have = stocks[eqIdx][t] || 0;
-                const diff = have - goal;
-                const cls = diff < 0 ? "bg-red" : (diff < 30 ? "bg-yellow" : "bg-green");
-                rowHtml += `<td class="${cls}">${diff}</td>`;
-            });
-            resBody.innerHTML += rowHtml + "</tr>";
-        });
-
-        document.getElementById('result-area').style.display = 'block';
-        window.scrollTo({ top: document.getElementById('result-area').offsetTop, behavior: 'smooth' });
-    }
-
-    async function takeScreenshot() {
-        const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = `BA_Stock_${new Date().getMonth()+1}${new Date().getDate()}.png`;
-        link.click();
-    }
-
-    async function copyScreenshot() {
-        const canvas = await html2canvas(document.getElementById('capture-target'), { scale: 2 });
-        canvas.toBlob(async (blob) => {
-            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-            alert("コピー完了");
-        });
-    }
-
-    init();
+    if (document.readyState === 'complete') { startApp(); } else { window.addEventListener('load', startApp); }
 </script>
-
 </body>
 </html>
